@@ -130,6 +130,11 @@
                 executionsStore.execution = response
             }
 
+            // The labels endpoint may return the execution with the previous labels, and the SSE
+            // stream of a terminated execution has already ended, so reload it for the Overview
+            // to show what the server stored.
+            await executionsStore.loadExecution({id: props.execution.id})
+
             toast.success(t("Set labels done"))
 
             isOpen.value = false
