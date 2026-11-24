@@ -50,7 +50,12 @@ export function useExecutionArtifacts() {
         )
     })
 
-    const tasks = computed(() => getAllTasks(executionsStore.flow?.tasks).map((task) => ({...sourceTaskById.value[task.id], ...task})))
+    const tasks = computed(() => getAllTasks([
+        executionsStore.flow?.tasks,
+        executionsStore.flow?.errors,
+        executionsStore.flow?.finally,
+        executionsStore.flow?.afterExecution,
+    ]).map((task) => ({...sourceTaskById.value[task.id], ...task})))
 
     const ownerTypesOf = (task: {type: string, taskRunner?: {type?: string}}) =>
         [...new Set([task.type, task.taskRunner?.type].filter((type): type is string => !!type))]

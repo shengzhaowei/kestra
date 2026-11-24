@@ -39,8 +39,32 @@ ${runner ? `    taskRunner:\n      type: ${runner}\n` : ""}`
 const strippedFlow = {id: "f", namespace: "ns", tasks: [{id: "shell", type: SHELL}]}
 const execution = {id: "e", flowId: "f", namespace: "ns", flowRevision: 3}
 
-const givenSource = (source: string) => {
-    executionsStore.flow = strippedFlow
+const sourceWithSections = `id: f
+namespace: ns
+tasks:
+  - id: shell
+    type: ${SHELL}
+errors:
+  - id: onError
+    type: ${SHELL}
+finally:
+  - id: cleanup
+    type: ${SHELL}
+afterExecution:
+  - id: notify
+    type: ${SHELL}`
+
+const flowWithSections = {
+    id: "f",
+    namespace: "ns",
+    tasks: [{id: "shell", type: SHELL}],
+    errors: [{id: "onError", type: SHELL}],
+    finally: [{id: "cleanup", type: SHELL}],
+    afterExecution: [{id: "notify", type: SHELL}],
+}
+
+const givenSource = (source: string, flow = strippedFlow) => {
+    executionsStore.flow = flow
     executionsStore.execution = execution
     flowStore.loadFlow.mockResolvedValue({source})
 }
@@ -89,6 +113,26 @@ describe("useExecutionArtifacts", () => {
 
         // Then
         expect(artifacts.value).toEqual([])
+    })
+
+    it("shouldListArtifactsOfTasksInErrorsFinallyAndAfterExecution", async () => {
+        // Given
+        givenSource(sourceWithSections, flowWithSections)
+        federated.taskAdditionalInfoRemote.value = {[`${SHELL}/logs`]: {}}
+
+        // When
+        const {artifacts} = useExecutionArtifacts()
+        await flush()
+
+        // Then
+        expect(artifacts.value).toEqual(["shell", "onError", "cleanup", "notify"].map((taskId) => ({
+            key: `${taskId}:${SHELL}/logs`,
+            taskId,
+            taskType: `${SHELL}/logs`,
+            cls: SHELL,
+            title: "logs",
+            description: undefined,
+        })))
     })
 
     it("shouldLoadTheExecutedRevisionWhenNoFlowIsInTheStore", async () => {
