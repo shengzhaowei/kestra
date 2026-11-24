@@ -1,0 +1,22 @@
+id: exit-in-parallel-after-sleep
+namespace: io.kestra.tests
+
+tasks:
+  - id: parallel
+    type: io.kestra.plugin.core.flow.Parallel
+    tasks:
+      - id: check
+        type: io.kestra.plugin.core.flow.Sequential
+        tasks:
+          - id: sleep
+            type: io.kestra.plugin.core.flow.Sleep
+            duration: PT1S
+          - id: exit
+            type: io.kestra.plugin.core.execution.Exit
+            state: FAILED
+      - id: work
+        type: io.kestra.plugin.core.flow.Sequential
+        tasks:
+          - id: sleep_work
+            type: io.kestra.plugin.core.flow.Sleep
+            duration: PT3S

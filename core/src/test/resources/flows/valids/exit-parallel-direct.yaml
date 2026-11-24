@@ -1,0 +1,16 @@
+id: exit-directly-in-parallel
+namespace: io.kestra.tests
+
+tasks:
+  - id: parallel
+    type: io.kestra.plugin.core.flow.Parallel
+    tasks:
+      - id: exit
+        type: io.kestra.plugin.core.execution.Exit
+        state: FAILED
+      - id: work
+        type: io.kestra.plugin.core.flow.Sequential
+        tasks:
+          - id: sleep
+            type: io.kestra.plugin.core.flow.Sleep
+            duration: PT3S

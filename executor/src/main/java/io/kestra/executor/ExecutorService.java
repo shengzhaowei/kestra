@@ -897,7 +897,7 @@ public class ExecutorService {
         Execution ended = execution;
         for (TaskRun taskRun : ListUtils.emptyOnNull(execution.getTaskRunList())) {
             if (!taskRun.getState().isTerminated() && flow.findTaskByTaskIdOrNull(taskRun.getTaskId()) instanceof FlowableTask<?>) {
-                ended = ended.withTaskRun(taskRun.withState(state));
+                ended = ended.withTaskRun(taskRun.withStateAndAttempt(state));
             }
         }
         return ended;
@@ -1784,6 +1784,16 @@ public class ExecutorService {
                         newExecution.withTaskRun(runningTaskRun),
                         "handleExecutionUpdatingTasks.updateExecution"
                     );
+
+                    // A terminated execution is no longer processed, so a flowable left running
+                    // would never resolve; worker task runs still report their own end.
+                    // KILLED is excluded: the kill cascade ends the task runs.
+                    if (newExecution.getState().isTerminated() && newExecution.getState().getCurrent() != State.Type.KILLED) {
+                        executor.withExecution(
+                            this.withUnfinishedFlowableTaskRuns(executor.getExecution(), executor.getFlow(), newExecution.getState().getCurrent()),
+                            "handleExecutionUpdatingTasks"
+                        );
+                    }
 
                     var terminalState = executionUpdatingTask
                         .resolveState(executorTask.runContext(), executor.getExecution())

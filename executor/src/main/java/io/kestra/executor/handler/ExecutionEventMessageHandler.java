@@ -321,6 +321,15 @@ public class ExecutionEventMessageHandler implements ExecutorMessageHandler<Exec
                                 .forEach(throwConsumer(executorTask ->
                                 {
                                     WorkerTask workerTask = executorTask.workerTask();
+                                    // A task run terminated during this pass (e.g. ended with the exit state
+                                    // by an Exit in a sibling branch) must not be dispatched or moved to RUNNING afterwards.
+                                    if (
+                                        processedExecution.findTaskRunByTaskRunIdIfPresent(workerTask.getTaskRun().getId())
+                                            .map(taskRun -> taskRun.getState().isTerminated())
+                                            .orElse(false)
+                                    ) {
+                                        return;
+                                    }
                                     try {
                                         if (!TruthUtils.isTruthy(executorTask.runContext().render(workerTask.getTask().getRunIf()))) {
                                             workerTaskResults.add(

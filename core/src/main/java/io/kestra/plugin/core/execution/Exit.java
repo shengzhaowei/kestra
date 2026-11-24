@@ -27,7 +27,7 @@ import lombok.experimental.SuperBuilder;
     description = """
         Updates the execution to `SUCCESS`, `WARNING`, `FAILED`, `CANCELED`, or `KILLED`. When set to `KILLED`, an out-of-band kill event is sent so running task runs are stopped; other states simply mark the execution and parent task runs as finished.
 
-        Use with care inside parallel branches: only `KILLED` stops sibling tasks."""
+        Use with care inside parallel branches: sibling flowable task runs end with the exit state as well; only tasks already running on a worker keep running until they report back."""
 )
 @Plugin(
     examples = {
@@ -82,7 +82,8 @@ public class Exit extends Task implements ExecutionUpdatableTask {
             return execution.withState(State.Type.KILLED);
         }
 
-        return execution.findLastNotTerminated()
+        return execution.findTaskRunByTaskRunIdIfPresent(runContext.taskRunInfo().taskRunId())
+            .or(execution::findLastNotTerminated)
             .map(taskRun -> execution.withTaskRunStateCascaded(taskRun, exitState))
             .orElse(execution)
             .withState(exitState);
